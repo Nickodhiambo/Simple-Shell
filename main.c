@@ -162,6 +162,7 @@ int lsh_exit(char **args);
 int lsh_env(char **args);
 int lsh_setenv(char **args);
 int lsh_unsetenv(char **args);
+int lsh_echo_file(char *input);
 
 // List of built-in commands followed by their corresponding functions
 char *builtin_str[] = {
@@ -171,6 +172,7 @@ char *builtin_str[] = {
     "env",
     "setenv",
     "unsetenv",
+    "echo",
 };
 
 int (*builtin_func[])(char **) = {
@@ -179,7 +181,8 @@ int (*builtin_func[])(char **) = {
     &lsh_exit,
     &lsh_env,
     &lsh_setenv,
-    &lsh_unsetenv};
+    &lsh_unsetenv,
+    &lsh_echo_file,};
 
 int lsh_num_builtins()
 {
@@ -249,6 +252,42 @@ int lsh_unsetenv(char **args)
         fprintf(stderr, "Command \"unsetenv\" expects NAME of variable\n");
     else if (unsetenv(args[1]) == -1)
         fprintf(stderr, "Failed to unset variable!\n");
+    return 1;
+}
+
+// Write to a file
+int lsh_echo_file(char **args)
+{
+    char *redirect;
+
+    redirect = strstr(input, ">");
+    if (redirect)
+    {
+        // Separate input into echo message and filename
+        *redirect = '\0'; // Null terminate the part before ">"
+        redirect++;       // Move to the filename part
+
+        // Remove whitespaces from filename
+        while (*redirect == ' ')
+            redirect++;
+        char *filename = redirect;
+        char *end = strchr(filename, '\n');
+        if (end)
+            *end = '\0';
+
+        // Open file for writing
+        FILE *file = fopen(filename, "w");
+        if (file == NULL)
+            perror("lsh: Error opening file");
+
+        // Write message into file
+        fprintf(file, "%s\n", input);
+        fclose(file);
+    }
+    else
+    {
+        printf("%s\n", input);
+    }
     return 1;
 }
 

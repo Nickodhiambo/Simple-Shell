@@ -6,3 +6,4 @@ int lsh_execute(char **args);
 int lsh_env(char **args);
 int lsh_setenv(char **args);
 int lsh_unsetenv(char **args);
+int lsh_echo_file(char **args);
