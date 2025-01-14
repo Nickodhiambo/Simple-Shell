@@ -159,17 +159,27 @@ int lsh_launch(char **args)
 int lsh_cd(char **args);
 int lsh_help(char **args);
 int lsh_exit(char **args);
+int lsh_env(char **args);
+int lsh_setenv(char **args);
+int lsh_unsetenv(char **args);
 
 // List of built-in commands followed by their corresponding functions
 char *builtin_str[] = {
     "cd",
     "help",
-    "exit"};
+    "exit",
+    "env",
+    "setenv",
+    "unsetenv",
+};
 
 int (*builtin_func[])(char **) = {
     &lsh_cd,
     &lsh_help,
-    &lsh_exit};
+    &lsh_exit,
+    &lsh_env,
+    &lsh_setenv,
+    &lsh_unsetenv};
 
 int lsh_num_builtins()
 {
@@ -203,6 +213,42 @@ int lsh_help(char **args)
         printf("    %s\n", builtin_str[i]);
 
     printf("Use the man command for info on other programs\n");
+    return 1;
+}
+
+// Implement env
+extern char **environ;
+
+int lsh_env(char **args)
+{
+    char **env = environ;
+
+    printf("Here are all the env variables available for this process:\n");
+    while (*env)
+    {
+        printf("%s\n", *env);
+        env++;
+    }
+    return 1;
+}
+
+// Implement setnev to set an evironment variable
+int lsh_setenv(char **args)
+{
+    if ((args[1] == NULL && args[2] == NULL) || args[1] == NULL)
+        fprintf(stderr, "Command \"setenv\" expects env's NAME and VALUE\n");
+    else if (setenv(args[1], args[2], -1) == -1)
+        fprintf(stderr, "lsh: Failed to set this environment\n");
+    return 1;
+}
+
+// Implement unset env
+int lsh_unsetenv(char **args)
+{
+    if (args[1] == NULL)
+        fprintf(stderr, "Command \"unsetenv\" expects NAME of variable\n");
+    else if (unsetenv(args[1]) == -1)
+        fprintf(stderr, "Failed to unset variable!\n");
     return 1;
 }
 
