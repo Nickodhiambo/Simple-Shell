@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include "main.h"
+#include <ctype.h>
 
 int main(int argc, char **argv)
 {
@@ -162,7 +163,7 @@ int lsh_exit(char **args);
 int lsh_env(char **args);
 int lsh_setenv(char **args);
 int lsh_unsetenv(char **args);
-int lsh_echo_file(char *input);
+int lsh_echo_file(char **args);
 
 // List of built-in commands followed by their corresponding functions
 char *builtin_str[] = {
@@ -182,7 +183,8 @@ int (*builtin_func[])(char **) = {
     &lsh_env,
     &lsh_setenv,
     &lsh_unsetenv,
-    &lsh_echo_file,};
+    &lsh_echo_file,
+};
 
 int lsh_num_builtins()
 {
@@ -258,9 +260,46 @@ int lsh_unsetenv(char **args)
 // Write to a file
 int lsh_echo_file(char **args)
 {
-    char *redirect;
+    char *redirect = NULL;
+    char *message = NULL;
+    char *filename = NULL;
+    FILE *file = NULL;
 
-    redirect = strstr(input, ">");
+    // Combine arguments into a single string
+    int i = 0;
+    size_t len = 0;
+
+    while (args[i])
+    {
+        len += strlen(args[i] + 1); // Add one for whitespace and null terminator
+            i++;
+    }
+
+    if (len == 0)
+        fprintf(stderr, "echo: Missing arguments\n");
+        return 1;
+    
+    message = (char *)malloc(len);
+    if (!message)
+    {
+        perror("lsh: malloc failed");
+        return 1;
+    }
+
+    // Add args to form one string
+    message[0] = '\0';
+    i = 1;
+    
+    while (args[i])
+    {
+        strcat(message, args[i]);
+        strcat(message, " ");
+        i++;
+    }
+
+    message[strlen(message) - 1] = '\0'; // Remove trailing whitespace
+
+    redirect = strstr(message, ">");
     if (redirect)
     {
         // Separate input into echo message and filename
@@ -270,26 +309,29 @@ int lsh_echo_file(char **args)
         // Remove whitespaces from filename
         while (*redirect == ' ')
             redirect++;
-        char *filename = redirect;
+        filename = redirect;
         char *end = strchr(filename, '\n');
         if (end)
             *end = '\0';
 
         // Open file for writing
-        FILE *file = fopen(filename, "w");
+        file = fopen(filename, "w");
         if (file == NULL)
             perror("lsh: Error opening file");
+            free(message);
+            return 1;
 
         // Write message into file
-        fprintf(file, "%s\n", input);
+        fprintf(file, "%s\n", message);
         fclose(file);
     }
     else
     {
-        printf("%s\n", input);
+        printf("%s\n", message);
     }
     return 1;
 }
+
 
 int lsh_exit(char **args)
 {
